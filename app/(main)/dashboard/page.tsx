@@ -1,4 +1,4 @@
-// import { RunAgentButton } from "@/components/agents/run-agent-button";
+import { RunAgentButton } from "@/components/agents/run-agent-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -9,13 +9,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-// import {
-//   getLatestAgentRun,
-//   getOrCreateUser,
-//   getUnreadEmails,
-//   getUserIntegrations,
-// } from "@/db/queries";
-import { getLatestAgentRun } from "@/db/queries/agentRuns";
+
+import { getLatestAgentRun, getUnreadEmails } from "@/db/queries/agentRuns";
 import { getUserIntegrations } from "@/db/queries/integrations";
 import { getUserByClerkId } from "@/db/queries/user";
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -44,6 +39,24 @@ export default async function DashboardPage() {
   const calendarConnected = userIntegrations.some(
     (integration) => integration.provider === "google_calendar",
   );
+
+  const { emailsProcessed, draftsCreated, tasksCreated } =
+    await getUnreadEmails(dbUser.id);
+
+  const emailData = [
+    {
+      label: "Unread Emails",
+      value: emailsProcessed,
+    },
+    {
+      label: "Drafts Created",
+      value: draftsCreated,
+    },
+    {
+      label: "Tasks Created",
+      value: tasksCreated,
+    },
+  ];
 
   const onboardingSteps = [
     {
@@ -128,10 +141,10 @@ export default async function DashboardPage() {
                   </Link>
                 ))}
               </div>
-              {/* <Progress
+              <Progress
                 value={progressPercentage}
-                className="onboarding-progress"
-                /> */}
+                className="mt-4 !bg-secondary/80"
+              />
               <p className="text-sm text-muted-foreground">
                 {completedCount} of {onboardingSteps.length} steps completed
               </p>
@@ -159,10 +172,10 @@ export default async function DashboardPage() {
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm tex-muted-foreground">Gmail</span>
+                  <span className="text-sm text-muted-foreground">Gmail</span>
                   <span className="text-sm font-medium">Connected</span>
                 </div>
-                {/* <RunAgentButton/> */}
+                <RunAgentButton />
               </div>
             </CardContent>
           </Card>
@@ -176,11 +189,16 @@ export default async function DashboardPage() {
             </CardHeader>
 
             <CardContent>
-              <div>
+              <div className="space-y-3">
                 {agentDetails.map((d) => (
-                  <div key={d.label}>
-                    <span>{d.label}</span>
-                    <span>{d.value}</span>
+                  <div
+                    key={d.label}
+                    className="flex items-center justify-between gap-4"
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {d.label}
+                    </span>
+                    <span className="text-sm font-medium">{d.value}</span>
                   </div>
                 ))}
               </div>
@@ -188,6 +206,23 @@ export default async function DashboardPage() {
           </Card>
         </div>
         {/* Quick Stats */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {emailData.map((edata) => (
+            <Card key={edata.label}>
+              <CardHeader className="items-center pb-2">
+                <CardTitle className="text-md font-medium">
+                  {edata.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm font-medium">{edata.value}</div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {edata.value === 0 ? "No Items" : "View All"}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

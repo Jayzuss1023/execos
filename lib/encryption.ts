@@ -22,3 +22,17 @@ export function encrypt(plaintext: string) {
   // Format: iv:tag:encrypted (all hex)
   return `${iv.toString("hex")}:${tag.toString("hex")}:${encrypted}`;
 }
+
+export function decrypt(ciphertext: string): string {
+  const key = getKey();
+  const [ivHex, tagHex, encrypted] = ciphertext.split(":");
+  const iv = Buffer.from(ivHex, "hex");
+  const tag = Buffer.from(tagHex, "hex");
+
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(tag);
+
+  const decrypted = decipher.update(encrypted, "hex", "utf8");
+
+  return decrypted;
+}
