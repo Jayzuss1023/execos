@@ -14,10 +14,10 @@ export function RunAgentButton() {
         const response = await fetch("/api/agents/run", {
           method: "POST",
         });
-
-        // if (!response.ok) {
-        //   console.error("Agent run failed", result.error);
-        // }
+        const result = await response.json();
+        if (!response.ok) {
+          console.error("Agent run failed", result.error);
+        }
 
         router.refresh();
       } catch (error) {

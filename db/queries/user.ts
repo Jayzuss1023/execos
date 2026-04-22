@@ -1,22 +1,13 @@
-import { google } from "googleapis";
-import { and, count, desc, eq, sql, arrayContains } from "drizzle-orm";
+import { and, eq, sql, arrayContains } from "drizzle-orm";
 import { db } from "../";
-import {
-  ActionLogEntry,
-  agentRuns,
-  integrations,
-  tasks,
-  users,
-} from "@/db/schema/schema";
-import {
-  createOAuth2Client,
-  getGoogleUserInfo,
-  GoogleProvider,
-} from "@/lib/google";
-import { auth } from "@clerk/nextjs/server";
+import { integrations, users } from "@/db/schema/schema";
+import { getGoogleUserInfo } from "@/lib/google";
 
-export async function getOrCreateUser(userId: string, accessToken: string) {
-  const userInfo = await getGoogleUserInfo(accessToken);
+export async function getOrCreateUser(
+  userId: string,
+  email: string,
+  name?: string,
+) {
   const userById = await getUserByClerkId(userId);
 
   // Create a new user in the DB if none
@@ -26,8 +17,8 @@ export async function getOrCreateUser(userId: string, accessToken: string) {
       .insert(users)
       .values({
         clerkId: userId,
-        connectedAccounts: [userInfo.email],
-        name: userInfo.name ?? null,
+        connectedAccounts: [email],
+        name: name ?? null,
       })
       .returning();
 
@@ -35,7 +26,7 @@ export async function getOrCreateUser(userId: string, accessToken: string) {
   }
 
   // Return if an account with the email exists
-  const existing = await getUserByEmail(userInfo.email);
+  const existing = await getUserByEmail(email);
   if (existing) {
     return existing;
   }
@@ -45,12 +36,11 @@ export async function getOrCreateUser(userId: string, accessToken: string) {
   const [updatedUser] = await db
     .update(users)
     .set({
-      connectedAccounts: sql`array_append(${users.connectedAccounts}, ${userInfo.email})`,
+      connectedAccounts: sql`array_append(${users.connectedAccounts}, ${email})`,
     })
     .where(eq(users.clerkId, userId))
     .returning();
 
-  console.log("UPDATEDUSER", updatedUser);
   return updatedUser;
 }
 
@@ -70,4 +60,14 @@ export async function getUserByEmail(email: string) {
     .where(arrayContains(users.connectedAccounts, [email]))
     .limit(1);
   return user ?? null;
+}
+
+export async function getUsersWithAgentEnabled() {
+  return db
+    .select({ userId: users.id, clerkId: users.clerkId })
+    .from(users)
+    .innerJoin(integrations, eq(users.id, integrations.userId))
+    .where(
+      and(eq(users.agentEnabled, true), eq(integrations.provider, "gmail")),
+    );
 }

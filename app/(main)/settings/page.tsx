@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { getUserIntegrations } from "@/db/queries/integrations";
 import { getUserByClerkId } from "@/db/queries/user";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { CalendarIcon, MailIcon } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -19,13 +19,9 @@ export default async function SettingsPage() {
     redirect("/sign-in");
   }
 
-  const clerkUser = await currentUser();
-  const email = clerkUser?.emailAddresses[0].emailAddress ?? "";
-  const name = clerkUser?.fullName ?? "";
-
   const user = await getUserByClerkId(userId);
   const userIntegrations = await getUserIntegrations(user.id);
-  const gmailProvider = userIntegrations.find(
+  const gmailIntegration = userIntegrations.find(
     (integration) => integration.provider === "gmail",
   );
 
@@ -39,7 +35,7 @@ export default async function SettingsPage() {
       name: "Gmail",
       description: "Read and manage your emails.",
       icon: MailIcon,
-      integration: userIntegrations[0],
+      integration: gmailIntegration,
     },
     {
       key: "google_calendar",

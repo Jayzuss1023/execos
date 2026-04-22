@@ -1,18 +1,34 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "../";
-import {
-  ActionLogEntry,
-  agentRuns,
-  integrations,
-  tasks,
-  users,
-} from "../schema/schema";
-import { GoogleProvider } from "@/lib/google";
+import { ActionLogEntry, agentRuns } from "../schema/schema";
 
 type TypeUnreadEmails = {
   emailsProcessed: number;
   draftsCreated: number;
   tasksCreated: number;
+};
+
+export type Email = {
+  processedAt: Date;
+  emailId: string;
+  subject: string;
+  from: string;
+  date: string;
+  status: "success" | "error";
+  summary?: string;
+  priority?: string;
+  category?: string;
+  needsReply?: boolean;
+  draftReply?: string | null;
+  actionItems?: {
+    title: string;
+    description: string;
+    dueDate: string | null;
+  }[];
+  tasksCreated?: number;
+  draftCreated?: boolean;
+  eventsCreated?: number;
+  error?: string;
 };
 
 type PromisedAgent = {
@@ -84,4 +100,14 @@ export async function completeAgentRun(agentRunId: string, data: CompletedRun) {
     .where(eq(agentRuns.id, agentRunId))
     .returning();
   return run;
+}
+
+export async function getAgentRuns(userId: string) {
+  const results = await db
+    .select()
+    .from(agentRuns)
+    .where(eq(agentRuns.userId, userId))
+    .orderBy(desc(agentRuns.startedAt))
+    .limit(20);
+  return results ?? [];
 }

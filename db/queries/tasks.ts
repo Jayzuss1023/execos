@@ -1,13 +1,5 @@
-import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "../";
-import {
-  ActionLogEntry,
-  agentRuns,
-  integrations,
-  tasks,
-  users,
-} from "../schema/schema";
-import { GoogleProvider } from "@/lib/google";
+import { tasks } from "../schema/schema";
 
 type NewTask = {
   userId: string;

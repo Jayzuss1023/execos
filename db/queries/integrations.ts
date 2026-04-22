@@ -1,12 +1,6 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "../";
-import {
-  ActionLogEntry,
-  agentRuns,
-  integrations,
-  tasks,
-  users,
-} from "@/db/schema/schema";
+import { integrations } from "@/db/schema/schema";
 import { GoogleProvider } from "@/lib/google";
 
 export type integrationData = {

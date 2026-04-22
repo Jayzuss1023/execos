@@ -1,21 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByClerkId } from "@/db/queries/user";
+import { getUserByClerkId, getUsersWithAgentEnabled } from "@/db/queries/user";
 import { runAgent } from "@/lib/agent";
 
 export async function POST(request: NextRequest) {
-  const cronSecret = request.headers.get("authorization");
-  const isCron =
-    process.env.CRON_SECRET &&
-    cronSecret === `Bearer ${process.env.CRON_SECRET}`;
+  const { userId } = await auth();
 
-  if (!isCron) {
-    const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+  try {
     const dbUser = await getUserByClerkId(userId);
 
     if (!dbUser) {
@@ -32,8 +27,13 @@ export async function POST(request: NextRequest) {
     // runAgent
     const result = await runAgent(dbUser.id);
     return NextResponse.json(result);
+  } catch (error) {
+    console.error("Error running agent: ", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Error running agent";
+    return {
+      errorMessage,
+      processedCount: 0,
+    };
   }
-
-  const results = [];
-  // const eligibleUsers = await getUsersWithAgentEnabled()
 }

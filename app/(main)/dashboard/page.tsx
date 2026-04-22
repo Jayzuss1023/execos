@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -12,9 +11,9 @@ import { Progress } from "@/components/ui/progress";
 
 import { getLatestAgentRun, getUnreadEmails } from "@/db/queries/agentRuns";
 import { getUserIntegrations } from "@/db/queries/integrations";
-import { getUserByClerkId } from "@/db/queries/user";
+import { getOrCreateUser, getUserByClerkId } from "@/db/queries/user";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { BadgeIcon, CheckCircle2Icon, CircleIcon, ZapIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleIcon, ZapIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -29,10 +28,10 @@ export default async function DashboardPage() {
   const clerkUser = await currentUser();
   const email = clerkUser?.emailAddresses[0].emailAddress ?? "";
   const name = clerkUser?.fullName ?? "";
+  const user = await getOrCreateUser(userId, email, name);
 
-  const dbUser = await getUserByClerkId(userId);
-  const latestRun = await getLatestAgentRun(dbUser.id);
-  const userIntegrations = await getUserIntegrations(dbUser.id);
+  const latestRun = await getLatestAgentRun(user.id);
+  const userIntegrations = await getUserIntegrations(user.id);
   const gmailConnected = userIntegrations.some(
     (integration) => integration.provider === "gmail",
   );
@@ -41,7 +40,7 @@ export default async function DashboardPage() {
   );
 
   const { emailsProcessed, draftsCreated, tasksCreated } =
-    await getUnreadEmails(dbUser.id);
+    await getUnreadEmails(user.id);
 
   const emailData = [
     {
@@ -110,7 +109,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="space-y-4">
-        {!dbUser.onboardingCompleted && (
+        {!user.onboardingCompleted && (
           <Card>
             <CardHeader>
               <CardTitle>Get Started</CardTitle>
